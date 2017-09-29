@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+
+  api:
+    build: ./_docker/api
+    ports:
+      - '8100:8100'
+    environment:
+      SESSION_AUTHENTICATION_KEY: abf804e906eaa13c158d9ce721f87502a87f7d4615726f8dde07dd4d3bc173167aead9d52692c237469acacbbd0ac44fcc85b43332b7df83ccb8175ba976b4de
+      SESSION_ENCRYPTION_KEY: fd80a05bad70f666c16669505556ca2f
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq.checkit:5672/
+      MONGODB_URL: mongodb://mongodb.checkit:27017
+      REPO_CONFIG_BASE_PATH: /_configs_repo/
+    volumes:
+      - ./_configs_repo:/_configs_repo
+    restart: on-failure
+    networks:
+      - checkit
+
+  fixer_php:
+    build: ./_docker/fixer-php
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq.checkit:5672/
+      REPO_CONFIG_BASE_PATH: /_configs_repo/
+      COMMAND_NAME: php-cs-fixer
+    volumes:
+      - ./_configs_repo:/_configs_repo
+    restart: on-failure
+    networks:
+      - checkit
+
+  result_store:
+    build: ./_docker/result-store
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq.checkit:5672/
+      MONGODB_URL: mongodb://mongodb.checkit:27017
+    restart: on-failure
+    networks:
+      - checkit
+
+  status-api:
+    build: ./_docker/status-api
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq.checkit:5672/
+      REPO_CONFIG_BASE_PATH: /_configs_repo/
+    volumes:
+      - ./_configs_repo:/_configs_repo
+    restart: on-failure
+    networks:
+      - checkit
+
+networks:
+
+  checkit:
+    driver: bridge

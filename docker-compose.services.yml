@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      checkit:
+        aliases:
+          - rabbitmq.checkit
+
+  mongodb:
+    image: mongo:3
+    ports:
+      - "27017:27017"
+    networks:
+      checkit:
+        aliases:
+          - mongodb.checkit
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8200:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb.checkit
+    networks:
+      - checkit
+
+networks:
+
+  checkit:
+    driver: bridge

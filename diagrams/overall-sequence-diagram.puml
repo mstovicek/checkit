@@ -1,0 +1,111 @@
+@startuml
+title flow diagram
+
+actor Developer
+actor Repository
+
+collections API as "Worker:\nAPI" << (W,#59aad6) >>
+
+participant RepositoryConfigStore as "Service:\nRepository Config Store"
+
+participant QueueRunInspection as "Queue:\nrunInspection" << (Q,#FF6600) >>
+participant QueueSendStatusPending as "Queue:\nsendStatusPending" << (Q,#FF6600) >>
+
+group Register repository
+
+    Developer -> API: Send GET request to see repositories
+    API -> Repository: Request OAuth access token
+    Repository ---> API: Return OAauth access token
+    API ---> Developer: Response: 200 OK - list of repositories
+
+    Developer -> API: Send POST request to register repository
+    API -> RepositoryConfigStore: Store repository information\n(incl. OAuth access token)
+    RepositoryConfigStore ---> API: Stored
+    API ---> Developer: Response: 200 OK - repository registered
+
+end
+
+Developer -> Repository: Configure webhook
+Developer -> Repository: Push commit
+
+group Receive Webhook from Repository
+
+    Repository -> API: Send POST webhook request
+    API ---> Repository: Response: 201 Created
+
+    API -> QueueSendStatusPending: Publish: commit.received
+    API -> QueueRunInspection: Publish: commit.received
+
+end
+
+group Set commit status to Pending
+
+    collections Fixer as "Worker:\nCode Fixer (PHP)" << (W,#59aad6) >>
+
+    participant QueueSendInspectionStatus as "Queue:\nsendInspectionStatus" << (Q,#FF6600) >>
+    participant QueueStoreInspectionResult as "Queue:\nstoreInspectionResult" << (Q,#FF6600) >>
+
+    collections StatusAPI as "Worker:\nStatus API" << (W,#59aad6) >>
+
+    QueueSendStatusPending -> StatusAPI: Consume message
+    StatusAPI -> RepositoryConfigStore: Read repository information
+    RepositoryConfigStore --> StatusAPI: Return repository information
+    StatusAPI -> Repository: POST Status
+    Repository --> StatusAPI: Response: 201 Created
+    StatusAPI ---> QueueSendStatusPending: Ack
+
+end
+
+Repository -> Developer: Display commit status: Pending
+
+group Run code inspection
+
+    QueueRunInspection -> Fixer: Consume message
+    Fixer -> RepositoryConfigStore: Read repository information
+    RepositoryConfigStore --> Fixer: Return repository information
+    Fixer -> Fixer: Checkout repository
+    Fixer -> Fixer: Runs code analysis
+    Fixer -> QueueSendInspectionStatus: Publish: inspection.processed
+    Fixer -> QueueStoreInspectionResult: Publish: inspection.processed
+    Fixer ---> QueueRunInspection: Ack
+
+end
+
+group Set commit inspection status
+
+    QueueSendInspectionStatus -> StatusAPI: Consume message
+    StatusAPI -> RepositoryConfigStore: Read repository information
+    RepositoryConfigStore --> StatusAPI: Return repository information
+    StatusAPI -> Repository: POST Status
+    Repository --> StatusAPI: Response: 201 Created
+    StatusAPI ---> QueueSendInspectionStatus: Ack
+
+end
+
+Repository -> Developer: Display commit status
+
+group Store commit status
+
+    collections ResultStore as "Worker:\nResult Store" << (W,#59aad6) >>
+    database DocumentStore
+
+    QueueStoreInspectionResult -> ResultStore: Consume message
+    ResultStore -> DocumentStore: Store result document
+    DocumentStore ---> ResultStore: Stored
+    ResultStore ---> QueueStoreInspectionResult: Ack
+
+end
+
+Developer -> Repository: See details of commit status
+Repository -> Developer: Redirects to inspection detail page
+
+group Handle request to display commit status
+
+    Developer -> API: Send GET request
+    API -> DocumentStore: Requests stored document by uuid
+    DocumentStore ---> API: Returns stored document
+    API ---> Developer: Response: 200 OK - inspection details
+
+end
+
+@enduml

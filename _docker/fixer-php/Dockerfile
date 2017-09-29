@@ -4,6 +4,9 @@ ADD https://github.com/FriendsOfPHP/PHP-CS-Fixer/releases/download/v2.5.0/php-cs
 RUN chmod +x /bin/php-cs-fixer
 RUN php-cs-fixer self-update
 
-COPY main.php /tmp/index.php
+WORKDIR /app
 
-CMD ["php", "-S", "0.0.0.0:80", "-t", "/tmp"]
+COPY .php_cs /app/
+COPY main /app/
+
+ENTRYPOINT ["./main"]

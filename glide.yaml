@@ -1,0 +1,20 @@
+package: github.com/mstovicek/checkit
+import:
+- package: github.com/sirupsen/logrus
+- package: github.com/gorilla/mux
+- package: github.com/gorilla/sessions
+- package: github.com/joeshaw/envdecode
+- package: github.com/satori/go.uuid
+- package: github.com/streadway/amqp
+- package: golang.org/x/oauth2
+  subpackages:
+  - github
+- package: gopkg.in/mgo.v2
+- package: gopkg.in/src-d/go-git.v4
+  subpackages:
+  - plumbing
+- package: github.com/bshuster-repo/logrus-logstash-hook
+testImport:
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert

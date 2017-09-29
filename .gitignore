@@ -1,0 +1,8 @@
+.idea
+vendor
+_configs_repo/*
+!_configs_repo/.gitkeep
+_docker-elk
+_docker/*/main
+_repo/*
+!_repo/.gitkeep

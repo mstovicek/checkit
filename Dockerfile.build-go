@@ -1,0 +1,7 @@
+FROM golang:1.9-alpine
+
+RUN apk add --update git make && rm -rf /var/cache/apk/*
+
+ADD . ./src/github.com/mstovicek/checkit
+
+WORKDIR ./src/github.com/mstovicek/checkit
